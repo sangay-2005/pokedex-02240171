@@ -1,5 +1,5 @@
-import { Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,15 +9,19 @@ import PokedexScreen from './src/screens/PokedexScreen';
 import DetailScreen from './src/screens/DetailScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import GameScreen from './src/screens/GameScreen';
-import { colors, APP_TITLE } from './src/theme';
 import { TeamProvider } from './src/context/TeamContext';
+import { colors, APP_TITLE, OUTLINE } from './src/theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const headerStyle = {
-  headerStyle: { backgroundColor: colors.primary },
-  headerTintColor: '#fff',
+  headerStyle: {
+    backgroundColor: colors.accent,
+    borderBottomWidth: OUTLINE,
+    borderBottomColor: colors.ink,
+  },
+  headerTintColor: colors.ink,
   headerTitleStyle: { fontWeight: '900', fontSize: 20 },
   headerShadowVisible: false,
 };
@@ -28,21 +32,16 @@ function Tabs() {
       screenOptions={({ route }) => ({
         ...headerStyle,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
+        tabBarInactiveTintColor: colors.ink,
+        tabBarLabelStyle: { fontWeight: '900', fontSize: 11 },
         tabBarStyle: {
-          height: 66,
+          height: 70,
           paddingTop: 6,
           paddingBottom: 8,
-          backgroundColor: '#fff',
-          borderTopWidth: 0,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          elevation: 12,
-          shadowColor: '#3B1F8C',
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: -4 },
+          backgroundColor: colors.card,
+          borderTopWidth: OUTLINE,
+          borderTopColor: colors.ink,
+          elevation: 0,
         },
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
@@ -84,7 +83,7 @@ export default function App() {
   return (
     <TeamProvider>
       <NavigationContainer>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Stack.Navigator screenOptions={headerStyle}>
           <Stack.Screen
             name="Tabs"
@@ -97,7 +96,7 @@ export default function App() {
             options={{
               title: 'Details',
               headerRight: () => (
-                <Text style={{ color: '#fff', fontWeight: '800' }}>
+                <Text style={{ color: colors.ink, fontWeight: '900' }}>
                   Wangzom
                 </Text>
               ),

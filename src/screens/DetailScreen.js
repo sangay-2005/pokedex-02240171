@@ -8,26 +8,30 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import HardShadow from '../components/HardShadow';
 import { artworkUrl, fetchPokemonDetail } from '../api';
 import { useTeam } from '../context/TeamContext';
-import { colors, softShadow, tintFor, typeColors } from '../theme';
+import { colors, OUTLINE, tintFor, typeColors } from '../theme';
 
 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const STAT_LABELS = {
   hp: 'HP',
-  attack: 'Attack',
-  defense: 'Defense',
-  'special-attack': 'Sp. Atk',
-  'special-defense': 'Sp. Def',
-  speed: 'Speed',
+  attack: 'ATK',
+  defense: 'DEF',
+  'special-attack': 'SP.ATK',
+  'special-defense': 'SP.DEF',
+  speed: 'SPD',
 };
 
-// light chip colours need dark text
-const LIGHT_TYPES = ['electric', 'ice', 'ground', 'steel', 'bug', 'normal'];
-
 const barColor = (v) =>
-  v < 50 ? '#EF6B6B' : v < 80 ? '#FFB703' : v < 110 ? '#4FB587' : '#6C3BD1';
+  v < 50
+    ? colors.pink
+    : v < 80
+    ? colors.accent
+    : v < 110
+    ? colors.mint
+    : colors.primary;
 
 export default function DetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -37,7 +41,7 @@ export default function DetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [tint, strong] = tintFor(id);
+  const [tint] = tintFor(id);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,19 +63,21 @@ export default function DetailScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: tint }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: tint }]}>
+      <View style={styles.center}>
         <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={styles.retryBtn} onPress={load}>
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+        <HardShadow radius={14}>
+          <Pressable style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryText}>RETRY</Text>
+          </Pressable>
+        </HardShadow>
       </View>
     );
   }
@@ -89,66 +95,73 @@ export default function DetailScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: tint }} bounces={false}>
-      {/* hero area */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      {/* hero */}
       <View style={[styles.hero, { backgroundColor: tint }]}>
-        <Text style={[styles.heroNumber, { color: strong }]}>
+        <Text style={styles.heroNumber}>
           {String(pokemon.id).padStart(3, '0')}
         </Text>
-        <Image
-          source={{ uri: artworkUrl(pokemon.id) }}
-          style={styles.heroImage}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-          transition={250}
-        />
+        <HardShadow radius={120} offset={7}>
+          <View style={styles.imageCircle}>
+            <Image
+              source={{ uri: artworkUrl(pokemon.id) }}
+              style={styles.image}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={250}
+            />
+          </View>
+        </HardShadow>
       </View>
 
-      {/* white sheet */}
-      <View style={styles.sheet}>
-        <Text style={[styles.number, { color: strong }]}>
-          #{String(pokemon.id).padStart(4, '0')}
-        </Text>
-        <Text style={styles.name}>{capitalize(pokemon.name)}</Text>
+      <View style={styles.body}>
+        <View style={styles.numTag}>
+          <Text style={styles.numText}>
+            #{String(pokemon.id).padStart(4, '0')}
+          </Text>
+        </View>
+        <Text style={styles.name}>{pokemon.name.toUpperCase()}</Text>
 
         <View style={styles.typeRow}>
           {pokemon.types.map((t) => (
             <View
               key={t}
-              style={[styles.typeChip, { backgroundColor: typeColors[t] || colors.primary }]}
+              style={[
+                styles.typeChip,
+                { backgroundColor: typeColors[t] || colors.accent },
+              ]}
             >
-              <Text
-                style={[
-                  styles.typeText,
-                  LIGHT_TYPES.includes(t) && { color: '#1F1535' },
-                ]}
-              >
-                {capitalize(t)}
-              </Text>
+              <Text style={styles.typeText}>{t.toUpperCase()}</Text>
             </View>
           ))}
         </View>
 
         <View style={styles.measureRow}>
-          <View style={styles.measureBox}>
+          <View style={[styles.measureBox, { backgroundColor: colors.mint }]}>
             <Text style={styles.measureValue}>{pokemon.height} m</Text>
-            <Text style={styles.measureLabel}>Height</Text>
+            <Text style={styles.measureLabel}>HEIGHT</Text>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.measureBox}>
+          <View style={[styles.measureBox, { backgroundColor: colors.sky }]}>
             <Text style={styles.measureValue}>{pokemon.weight} kg</Text>
-            <Text style={styles.measureLabel}>Weight</Text>
+            <Text style={styles.measureLabel}>WEIGHT</Text>
           </View>
         </View>
 
         <View style={styles.statsHeader}>
-          <Text style={styles.sectionTitle}>Base stats</Text>
-          <Text style={styles.totalText}>Total {total}</Text>
+          <Text style={styles.sectionTitle}>BASE STATS</Text>
+          <View style={styles.totalChip}>
+            <Text style={styles.totalText}>TOTAL {total}</Text>
+          </View>
         </View>
 
         {pokemon.stats.map((s) => (
           <View key={s.name} style={styles.statRow}>
-            <Text style={styles.statLabel}>{STAT_LABELS[s.name] || s.name}</Text>
+            <Text style={styles.statLabel}>
+              {STAT_LABELS[s.name] || s.name}
+            </Text>
             <View style={styles.barTrack}>
               <View
                 style={[
@@ -164,121 +177,197 @@ export default function DetailScreen({ route, navigation }) {
           </View>
         ))}
 
-        <Pressable
-          onPress={onTeamPress}
-          disabled={disabled}
-          style={[
-            styles.teamBtn,
-            inTeam && styles.teamBtnRemove,
-            disabled && styles.teamBtnDisabled,
-          ]}
-        >
-          <Text style={[styles.teamBtnText, inTeam && { color: '#B3261E' }]}>
-            {inTeam
-              ? 'Remove from team'
-              : disabled
-              ? 'Team is full (6/6)'
-              : 'Add to team'}
-          </Text>
-        </Pressable>
+        <HardShadow radius={18} offset={5} style={{ marginTop: 28 }}>
+          <Pressable
+            onPress={onTeamPress}
+            disabled={disabled}
+            style={[
+              styles.teamBtn,
+              inTeam && { backgroundColor: colors.pink },
+              disabled && { backgroundColor: '#D9D4C7' },
+            ]}
+          >
+            <Text
+              style={[
+                styles.teamBtnText,
+                !inTeam && !disabled && { color: '#fff' },
+                disabled && { color: colors.muted },
+              ]}
+            >
+              {inTeam
+                ? 'REMOVE FROM TEAM'
+                : disabled
+                ? 'TEAM IS FULL (6/6)'
+                : 'ADD TO TEAM'}
+            </Text>
+          </Pressable>
+        </HardShadow>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errorText: { color: colors.text, textAlign: 'center', marginBottom: 12 },
-  retryBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryText: { color: '#fff', fontWeight: 'bold' },
-
-  hero: { height: 280, alignItems: 'center', justifyContent: 'center' },
-  heroNumber: {
-    position: 'absolute',
-    fontSize: 190,
-    fontWeight: '900',
-    opacity: 0.2,
-    top: 10,
-  },
-  heroImage: { width: 240, height: 240, marginBottom: 20 },
-
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    marginTop: -30,
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 40,
-    minHeight: 480,
-    ...softShadow,
-  },
-  number: { fontWeight: '800', letterSpacing: 1.5, textAlign: 'center' },
-  name: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  typeRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 10,
-  },
-  typeChip: { paddingHorizontal: 18, paddingVertical: 6, borderRadius: 16 },
-  typeText: { color: '#fff', fontWeight: '800' },
-
-  measureRow: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: colors.background },
+  center: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
-    borderRadius: 20,
-    paddingVertical: 14,
-    marginTop: 18,
+    padding: 24,
   },
-  measureBox: { flex: 1, alignItems: 'center' },
-  measureValue: { fontSize: 18, fontWeight: '800', color: colors.text },
-  measureLabel: { color: colors.muted, marginTop: 2 },
-  divider: { width: 1, height: 30, backgroundColor: colors.border },
+  errorText: {
+    color: colors.ink,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryBtn: {
+    backgroundColor: colors.accent,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 14,
+    paddingHorizontal: 26,
+    paddingVertical: 10,
+  },
+  retryText: { color: colors.ink, fontWeight: '900', letterSpacing: 1 },
+
+  hero: {
+    height: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: OUTLINE,
+    borderBottomColor: colors.ink,
+    overflow: 'hidden',
+  },
+  heroNumber: {
+    position: 'absolute',
+    fontSize: 200,
+    fontWeight: '900',
+    color: colors.ink,
+    opacity: 0.1,
+  },
+  imageCircle: {
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: '#fff',
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: { width: 200, height: 200 },
+
+  body: { padding: 20, alignItems: 'center' },
+  numTag: {
+    backgroundColor: colors.ink,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+  },
+  numText: { color: '#fff', fontWeight: '900', letterSpacing: 1.5 },
+  name: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: colors.ink,
+    marginTop: 6,
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  typeRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  typeChip: {
+    borderWidth: 2.5,
+    borderColor: colors.ink,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+  },
+  typeText: { color: colors.ink, fontWeight: '900', letterSpacing: 1 },
+
+  measureRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  measureBox: {
+    flex: 1,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  measureValue: { fontSize: 20, fontWeight: '900', color: colors.ink },
+  measureLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    color: colors.ink,
+    marginTop: 2,
+  },
 
   statsHeader: {
+    alignSelf: 'stretch',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 6,
+    marginTop: 26,
+    marginBottom: 8,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.primaryDark },
-  totalText: { color: colors.muted, fontWeight: '700' },
-  statRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
-  statLabel: { width: 64, color: colors.muted, fontWeight: '700', fontSize: 13 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.ink,
+    letterSpacing: 1,
+  },
+  totalChip: {
+    backgroundColor: colors.accent,
+    borderWidth: 2.5,
+    borderColor: colors.ink,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  totalText: { fontWeight: '900', color: colors.ink, fontSize: 13 },
+
+  statRow: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+  statLabel: { width: 62, fontWeight: '900', color: colors.ink, fontSize: 13 },
   barTrack: {
     flex: 1,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.border,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderWidth: 2.5,
+    borderColor: colors.ink,
     overflow: 'hidden',
     marginHorizontal: 8,
   },
-  barFill: { height: 12, borderRadius: 6 },
-  statValue: { width: 34, textAlign: 'right', fontWeight: '800', color: colors.text },
+  barFill: {
+    height: '100%',
+    borderRightWidth: 2.5,
+    borderRightColor: colors.ink,
+  },
+  statValue: {
+    width: 34,
+    textAlign: 'right',
+    fontWeight: '900',
+    color: colors.ink,
+  },
 
   teamBtn: {
     backgroundColor: colors.primary,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 18,
     paddingVertical: 16,
-    borderRadius: 20,
     alignItems: 'center',
-    marginTop: 28,
-    ...softShadow,
   },
-  teamBtnRemove: { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: colors.wrong },
-  teamBtnDisabled: { backgroundColor: colors.border },
-  teamBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  teamBtnText: {
+    color: colors.ink,
+    fontWeight: '900',
+    fontSize: 17,
+    letterSpacing: 1,
+  },
 });

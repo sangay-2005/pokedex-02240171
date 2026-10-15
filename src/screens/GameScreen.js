@@ -7,12 +7,17 @@ import {
   Text,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { artworkUrl, fetchFirst151 } from '../api';
 import { colors, softShadow } from '../theme';
 
-const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const TOTAL_ROUNDS = 10;
+const STORE_KEY = 'pokedex_game_records';
 const LETTERS = ['A', 'B', 'C', 'D'];
+
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const shuffle = (arr) => {
   const a = [...arr];
@@ -29,17 +34,30 @@ const makeRound = (pool) => {
   return { answer, options: shuffle([answer, ...wrong]) };
 };
 
+const rankFor = (score) =>
+  score >= 9
+    ? 'Pokémon Master!'
+    : score >= 7
+    ? 'Great trainer!'
+    : score >= 4
+    ? 'Nice try, trainer!'
+    : 'Keep training!';
+
 export default function GameScreen() {
   const [pool, setPool] = useState([]);
+  const [phase, setPhase] = useState('menu'); // 'menu' | 'playing' | 'result'
   const [round, setRound] = useState(null);
+  const [roundNo, setRoundNo] = useState(1);
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [best, setBest] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [highScore, setHighScore] = useState(0);
+  const [newHigh, setNewHigh] = useState(false);
   const [hints, setHints] = useState(3);
   const [hidden, setHidden] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -47,7 +65,16 @@ export default function GameScreen() {
     try {
       const list = await fetchFirst151();
       setPool(list);
-      setRound(makeRound(list));
+      try {
+        const raw = await AsyncStorage.getItem(STORE_KEY);
+        if (raw) {
+          const r = JSON.parse(raw);
+          setHighScore(r.highScore || 0);
+          setBest(r.bestStreak || 0);
+        }
+      } catch (e) {
+        // no saved records yet
+      }
     } catch (e) {
       setError('Could not start the game. Check your internet connection.');
     } finally {
@@ -60,6 +87,30 @@ export default function GameScreen() {
   }, []);
 
   const answered = picked !== null;
+
+  const startGame = () => {
+    setScore(0);
+    setStreak(0);
+    setHints(3);
+    setHidden([]);
+    setPicked(null);
+    setRoundNo(1);
+    setNewHigh(false);
+    setRound(makeRound(pool));
+    setPhase('playing');
+  };
+
+  const finishGame = () => {
+    const isHigh = score > highScore;
+    const nextHigh = Math.max(score, highScore);
+    setNewHigh(isHigh);
+    setHighScore(nextHigh);
+    AsyncStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ highScore: nextHigh, bestStreak: best })
+    ).catch(() => {});
+    setPhase('result');
+  };
 
   const onPick = (option) => {
     if (answered) return;
@@ -77,6 +128,11 @@ export default function GameScreen() {
   };
 
   const onNext = () => {
+    if (roundNo >= TOTAL_ROUNDS) {
+      finishGame();
+      return;
+    }
+    setRoundNo((n) => n + 1);
     setPicked(null);
     setHidden([]);
     setRound(makeRound(pool));
@@ -97,6 +153,7 @@ export default function GameScreen() {
     return [styles.option, { opacity: 0.55 }];
   };
 
+  // ---------- loading / error ----------
   if (loading) {
     return (
       <View style={styles.center}>
@@ -109,20 +166,114 @@ export default function GameScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={styles.nextBtn} onPress={load}>
-          <Text style={styles.nextText}>Retry</Text>
+        <Pressable style={styles.bigBtn} onPress={load}>
+          <Text style={styles.bigBtnText}>Retry</Text>
         </Pressable>
       </View>
     );
   }
 
+  // ---------- start screen ----------
+  if (phase === 'menu') {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.menuContent}
+      >
+        <Text style={styles.menuTitle}>Who's that Pokémon?</Text>
+        <Text style={styles.menuSub}>
+          {TOTAL_ROUNDS} rounds · 3 hints · guess from the silhouette
+        </Text>
+
+        <View style={styles.stage}>
+          <View style={styles.glowOuter} />
+          <View style={styles.glowInner} />
+          <Text style={styles.bigQ}>?</Text>
+        </View>
+
+        <View style={styles.recordRow}>
+          <View style={styles.recordBox}>
+            <Text style={styles.recordValue}>{highScore}</Text>
+            <Text style={styles.recordLabel}>HIGH SCORE</Text>
+          </View>
+          <View style={styles.recordBox}>
+            <Text style={styles.recordValue}>{best}</Text>
+            <Text style={styles.recordLabel}>BEST STREAK</Text>
+          </View>
+        </View>
+
+        <Pressable style={styles.bigBtn} onPress={startGame}>
+          <Ionicons name="play" size={22} color={colors.primaryDark} />
+          <Text style={styles.bigBtnText}>Play</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  // ---------- results screen ----------
+  if (phase === 'result') {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.menuContent}
+      >
+        <Text style={styles.menuTitle}>Game over</Text>
+
+        <View style={styles.stage}>
+          <View style={styles.glowOuter} />
+          <View style={styles.glowInner} />
+          <Ionicons name="trophy" size={110} color={colors.primaryDark} />
+        </View>
+
+        <Text style={styles.finalScore}>
+          {score}/{TOTAL_ROUNDS}
+        </Text>
+        <Text style={styles.rank}>{rankFor(score)}</Text>
+        {newHigh && <Text style={styles.newHigh}>New high score!</Text>}
+
+        <View style={styles.recordRow}>
+          <View style={styles.recordBox}>
+            <Text style={styles.recordValue}>{highScore}</Text>
+            <Text style={styles.recordLabel}>HIGH SCORE</Text>
+          </View>
+          <View style={styles.recordBox}>
+            <Text style={styles.recordValue}>{best}</Text>
+            <Text style={styles.recordLabel}>BEST STREAK</Text>
+          </View>
+        </View>
+
+        <Pressable style={styles.bigBtn} onPress={startGame}>
+          <Ionicons name="refresh" size={22} color={colors.primaryDark} />
+          <Text style={styles.bigBtnText}>Play again</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  // ---------- playing ----------
   const gotIt = answered && picked === round.answer.id;
+  const doneRounds = roundNo - 1 + (answered ? 1 : 0);
+  const isLast = roundNo >= TOTAL_ROUNDS;
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
     >
+      <View style={styles.roundRow}>
+        <Text style={styles.roundText}>
+          Round {roundNo}/{TOTAL_ROUNDS}
+        </Text>
+        <View style={styles.track}>
+          <View
+            style={[
+              styles.trackFill,
+              { width: `${(doneRounds / TOTAL_ROUNDS) * 100}%` },
+            ]}
+          />
+        </View>
+      </View>
+
       <View style={styles.pills}>
         <View style={styles.pill}>
           <Text style={styles.pillValue}>{score}</Text>
@@ -192,7 +343,9 @@ export default function GameScreen() {
 
       {answered && (
         <Pressable style={styles.nextBtn} onPress={onNext}>
-          <Text style={styles.nextText}>Next</Text>
+          <Text style={styles.nextText}>
+            {isLast ? 'See results' : 'Next'}
+          </Text>
         </Pressable>
       )}
     </ScrollView>
@@ -202,6 +355,13 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.primaryDark },
   content: { alignItems: 'center', padding: 20, paddingBottom: 40 },
+  menuContent: {
+    alignItems: 'center',
+    padding: 24,
+    paddingBottom: 40,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -210,6 +370,79 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: { color: '#fff', textAlign: 'center', marginBottom: 12 },
+
+  // menu + result
+  menuTitle: {
+    color: '#fff',
+    fontSize: 30,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  menuSub: {
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  bigQ: { fontSize: 120, fontWeight: '900', color: colors.primaryDark },
+  recordRow: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
+  recordBox: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  recordValue: { color: '#fff', fontSize: 28, fontWeight: '900' },
+  recordLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  bigBtn: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.accent,
+    paddingVertical: 16,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 22,
+    ...softShadow,
+  },
+  bigBtnText: { color: colors.primaryDark, fontWeight: '900', fontSize: 19 },
+  finalScore: { color: '#fff', fontSize: 56, fontWeight: '900' },
+  rank: { color: colors.accent, fontSize: 22, fontWeight: '900' },
+  newHigh: {
+    color: colors.primaryDark,
+    backgroundColor: colors.accent,
+    fontWeight: '900',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 14,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+
+  // playing
+  roundRow: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  roundText: { color: '#fff', fontWeight: '800' },
+  track: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
+  },
+  trackFill: { height: 8, borderRadius: 4, backgroundColor: colors.accent },
 
   pills: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
   pill: {

@@ -10,13 +10,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PokemonCard from '../components/PokemonCard';
+import HardShadow from '../components/HardShadow';
 import {
   fetchAllNames,
   fetchPokemonPage,
   PAGE_SIZE,
   START_OFFSET,
 } from '../api';
-import { colors } from '../theme';
+import { colors, OUTLINE } from '../theme';
 
 export default function PokedexScreen({ navigation }) {
   // ---- infinite scroll list ----
@@ -98,12 +99,18 @@ export default function PokedexScreen({ navigation }) {
     />
   );
 
+  const RetryButton = ({ onPress }) => (
+    <HardShadow radius={14} style={{ marginTop: 6 }}>
+      <Pressable style={styles.retryBtn} onPress={onPress}>
+        <Text style={styles.retryText}>RETRY</Text>
+      </Pressable>
+    </HardShadow>
+  );
+
   const ErrorBox = ({ message, onRetry }) => (
     <View style={styles.center}>
       <Text style={styles.errorText}>{message}</Text>
-      <Pressable style={styles.retryBtn} onPress={onRetry}>
-        <Text style={styles.retryText}>Retry</Text>
-      </Pressable>
+      <RetryButton onPress={onRetry} />
     </View>
   );
 
@@ -119,22 +126,24 @@ export default function PokedexScreen({ navigation }) {
     } else if (!allNames) {
       body = (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.ink} />
         </View>
       );
     } else if (results.length === 0) {
       body = (
         <View style={styles.emptyWrap}>
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="search" size={34} color={colors.primary} />
+          <HardShadow radius={24} offset={6}>
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="search" size={36} color={colors.ink} />
+              </View>
+              <Text style={styles.emptyTitle}>NO POKÉMON FOUND</Text>
+              <Text style={styles.emptyText}>
+                Nothing matches "{debounced}". Check the spelling or try a
+                shorter name.
+              </Text>
             </View>
-            <Text style={styles.emptyTitle}>No Pokémon found</Text>
-            <Text style={styles.emptyText}>
-              Nothing matches "{debounced}". Check the spelling or try a
-              shorter name.
-            </Text>
-          </View>
+          </HardShadow>
         </View>
       );
     } else {
@@ -153,7 +162,7 @@ export default function PokedexScreen({ navigation }) {
   } else if (loading && items.length === 0) {
     body = (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
   } else {
@@ -168,13 +177,11 @@ export default function PokedexScreen({ navigation }) {
         contentContainerStyle={{ paddingVertical: 8 }}
         ListFooterComponent={
           loading ? (
-            <ActivityIndicator style={{ margin: 16 }} color={colors.primary} />
+            <ActivityIndicator style={{ margin: 16 }} color={colors.ink} />
           ) : error ? (
             <View style={styles.footerError}>
               <Text style={styles.errorText}>{error}</Text>
-              <Pressable style={styles.retryBtn} onPress={loadMore}>
-                <Text style={styles.retryText}>Retry</Text>
-              </Pressable>
+              <RetryButton onPress={loadMore} />
             </View>
           ) : null
         }
@@ -184,20 +191,24 @@ export default function PokedexScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.banner}>
-        <Text style={styles.bannerText}>Gotta fetch 'em all!</Text>
-        <View style={styles.searchWrap}>
-          <Ionicons name="search" size={20} color={colors.muted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search all Pokémon"
-            placeholderTextColor={colors.muted}
-            autoCorrect={false}
-            autoCapitalize="none"
-            style={styles.searchInput}
-          />
+      <View style={styles.top}>
+        <View style={styles.tag}>
+          <Text style={styles.tagText}>GOTTA FETCH 'EM ALL!</Text>
         </View>
+        <HardShadow radius={16}>
+          <View style={styles.searchWrap}>
+            <Ionicons name="search" size={22} color={colors.ink} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search all Pokémon"
+              placeholderTextColor={colors.muted}
+              autoCorrect={false}
+              autoCapitalize="none"
+              style={styles.searchInput}
+            />
+          </View>
+        </HardShadow>
       </View>
       {body}
     </View>
@@ -206,41 +217,66 @@ export default function PokedexScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  banner: {
+
+  top: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
+  tag: {
+    alignSelf: 'flex-start',
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingTop: 2,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    marginBottom: 6,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 12,
+    transform: [{ rotate: '-2deg' }],
   },
-  bannerText: {
-    color: colors.accent,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    marginBottom: 10,
+  tagText: {
+    color: '#fff',
+    fontWeight: '900',
+    letterSpacing: 1,
+    fontSize: 12,
   },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: 16,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    paddingHorizontal: 14,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
     marginLeft: 10,
     fontSize: 16,
-    color: colors.text,
+    fontWeight: '700',
+    color: colors.ink,
   },
+
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
+  errorText: {
+    color: colors.ink,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  footerError: { alignItems: 'center', padding: 16 },
+  retryBtn: {
+    backgroundColor: colors.accent,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 14,
+    paddingHorizontal: 26,
+    paddingVertical: 10,
+  },
+  retryText: { color: colors.ink, fontWeight: '900', letterSpacing: 1 },
+
   emptyWrap: {
     flex: 1,
     justifyContent: 'center',
@@ -248,40 +284,36 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   emptyCard: {
-    backgroundColor: colors.card,
-    borderRadius: 28,
+    backgroundColor: colors.pink,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: 24,
     paddingVertical: 28,
     paddingHorizontal: 22,
     alignItems: 'center',
-    shadowColor: '#3B1F8C',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
   emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.background,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#fff',
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '900', color: colors.text },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.ink,
+    letterSpacing: 0.5,
+  },
   emptyText: {
-    marginTop: 6,
-    color: colors.muted,
+    marginTop: 8,
+    color: colors.ink,
+    fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
   },
-  errorText: { color: colors.text, textAlign: 'center', marginBottom: 12 },
-  footerError: { alignItems: 'center', padding: 16 },
-  retryBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryText: { color: '#fff', fontWeight: 'bold' },
 });
