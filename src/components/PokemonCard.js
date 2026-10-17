@@ -1,23 +1,22 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
+import FadeIn from './FadeIn';
 import { artworkUrl } from '../api';
-import HardShadow from './HardShadow';
-import { colors, OUTLINE, tintFor } from '../theme';
+import { colors, glow, MONO, tintFor } from '../theme';
 
-export default function PokemonCard({ id, name, onPress, onRemove }) {
-  const [tint] = tintFor(id);
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export default function PokemonCard({ id, name, onPress, onRemove, index = 0 }) {
+  const [accent] = tintFor(id);
 
   return (
-    <HardShadow style={styles.wrap} radius={18}>
+    <FadeIn delay={Math.min(index % 20, 8) * 45} style={styles.wrap}>
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.card,
-          { backgroundColor: tint },
-          pressed && { transform: [{ translateX: 3 }, { translateY: 3 }] },
-        ]}
+        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
-        <View style={styles.badge}>
+        <View style={[styles.ring, { borderColor: accent }, glow(accent, 0.55, 10)]}>
           <Image
             source={{ uri: artworkUrl(id) }}
             style={styles.image}
@@ -28,68 +27,63 @@ export default function PokemonCard({ id, name, onPress, onRemove }) {
         </View>
 
         <View style={styles.info}>
-          <View style={styles.numTag}>
-            <Text style={styles.numText}>#{String(id).padStart(4, '0')}</Text>
-          </View>
+          <Text style={[styles.number, { color: accent }]}>
+            No.{String(id).padStart(4, '0')}
+          </Text>
           <Text style={styles.name} numberOfLines={1}>
-            {name.toUpperCase()}
+            {capitalize(name)}
           </Text>
         </View>
 
-        {onRemove && (
+        {onRemove ? (
           <Pressable onPress={onRemove} style={styles.removeBtn} hitSlop={8}>
             <Text style={styles.removeText}>REMOVE</Text>
           </Pressable>
+        ) : (
+          <Ionicons name="chevron-forward" size={22} color={colors.muted} />
         )}
       </Pressable>
-    </HardShadow>
+    </FadeIn>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: 16, marginVertical: 8 },
+  wrap: { marginHorizontal: 16, marginVertical: 6 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: OUTLINE,
-    borderColor: colors.ink,
-    padding: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
   },
-  badge: {
-    width: 76,
-    height: 76,
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    borderWidth: OUTLINE,
-    borderColor: colors.ink,
+  pressed: { backgroundColor: colors.surface2, transform: [{ scale: 0.98 }] },
+  ring: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.bg,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: { width: 64, height: 64 },
+  image: { width: 62, height: 62 },
   info: { flex: 1, marginLeft: 14 },
-  numTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.ink,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  numText: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
-  name: {
-    fontSize: 21,
-    fontWeight: '900',
-    color: colors.ink,
-    marginTop: 6,
-    letterSpacing: 0.5,
-  },
+  number: { fontFamily: MONO, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  name: { fontSize: 21, fontWeight: '800', color: colors.text, marginTop: 2 },
   removeBtn: {
-    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 2.5,
-    borderColor: colors.ink,
+    paddingVertical: 6,
   },
-  removeText: { color: colors.ink, fontWeight: '900', fontSize: 12 },
+  removeText: {
+    fontFamily: MONO,
+    color: colors.danger,
+    fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
 });

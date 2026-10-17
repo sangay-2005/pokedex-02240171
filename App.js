@@ -10,20 +10,38 @@ import DetailScreen from './src/screens/DetailScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import GameScreen from './src/screens/GameScreen';
 import { TeamProvider } from './src/context/TeamContext';
-import { colors, APP_TITLE, OUTLINE } from './src/theme';
+import { colors, APP_TITLE, MONO } from './src/theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const headerStyle = {
   headerStyle: {
-    backgroundColor: colors.accent,
-    borderBottomWidth: OUTLINE,
-    borderBottomColor: colors.ink,
+    backgroundColor: colors.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  headerTintColor: colors.ink,
-  headerTitleStyle: { fontWeight: '900', fontSize: 20 },
+  headerTintColor: colors.text,
+  headerTitleStyle: { fontWeight: '800', fontSize: 18, letterSpacing: 0.5 },
   headerShadowVisible: false,
+};
+
+const navTheme = {
+  dark: true,
+  colors: {
+    primary: colors.accent,
+    background: colors.bg,
+    card: colors.bg,
+    text: colors.text,
+    border: colors.border,
+    notification: colors.accent,
+  },
+  fonts: {
+    regular: { fontFamily: 'System', fontWeight: '400' },
+    medium: { fontFamily: 'System', fontWeight: '500' },
+    bold: { fontFamily: 'System', fontWeight: '700' },
+    heavy: { fontFamily: 'System', fontWeight: '900' },
+  },
 };
 
 function Tabs() {
@@ -31,29 +49,34 @@ function Tabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         ...headerStyle,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.ink,
-        tabBarLabelStyle: { fontWeight: '900', fontSize: 11 },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: {
+          fontFamily: MONO,
+          fontWeight: '700',
+          fontSize: 10,
+          letterSpacing: 1,
+        },
         tabBarStyle: {
-          height: 70,
+          height: 68,
           paddingTop: 6,
-          paddingBottom: 8,
-          backgroundColor: colors.card,
-          borderTopWidth: OUTLINE,
-          borderTopColor: colors.ink,
+          paddingBottom: 9,
+          backgroundColor: colors.bg,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
           elevation: 0,
         },
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
-            Pokédex: 'list',
-            'My Team': 'people',
+            Pokédex: 'albums',
+            'My Team': 'shield-half',
             Game: 'game-controller',
           };
           const base = icons[route.name];
           return (
             <Ionicons
               name={focused ? base : `${base}-outline`}
-              size={size}
+              size={size + 2}
               color={color}
             />
           );
@@ -82,8 +105,8 @@ function Tabs() {
 export default function App() {
   return (
     <TeamProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" />
+      <NavigationContainer theme={navTheme}>
+        <StatusBar style="light" />
         <Stack.Navigator screenOptions={headerStyle}>
           <Stack.Screen
             name="Tabs"
@@ -95,8 +118,15 @@ export default function App() {
             component={DetailScreen}
             options={{
               title: 'Details',
+              animation: 'slide_from_bottom',
               headerRight: () => (
-                <Text style={{ color: colors.ink, fontWeight: '900' }}>
+                <Text
+                  style={{
+                    color: colors.accent,
+                    fontFamily: MONO,
+                    fontWeight: '700',
+                  }}
+                >
                   Wangzom
                 </Text>
               ),
